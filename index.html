@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Video Sharing Platform • Demo (Frontend‑Only)</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#0b0f14; --panel:#121821; --muted:#8aa0b2; --text:#eaf2f9; --brand:#3aa0ff; --brand-2:#7c4dff;
+      --ok:#2ecc71; --warn:#f1c40f; --err:#e74c3c; --border:#1f2a36;
+      --radius:16px; --shadow:0 10px 30px rgba(0,0,0,.25);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial;color:var(--text);background:radial-gradient(1200px 600px at 90% -10%, rgba(60,110,255,.08), transparent 60%),
+    radial-gradient(1000px 500px at -10% 10%, rgba(100,255,220,.06), transparent 60%), var(--bg);} 
+    a{color:var(--brand)}
+
+    /* Layout */
+    .shell{max-width:1100px;margin-inline:auto;padding:24px}
+    header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--brand-2));box-shadow:var(--shadow)}
+    h1{font-size:20px;margin:0}
+    .actions{display:flex;gap:8px;align-items:center}
+    button, input, select, textarea{border:1px solid var(--border);background:#0f1520;color:var(--text);padding:10px 12px;border-radius:10px;outline:none}
+    button{cursor:pointer;background:linear-gradient(180deg,var(--brand),#1772d0);border:none;box-shadow:var(--shadow)}
+    button.secondary{background:#0f1520;border:1px solid var(--border)}
+    button.ghost{background:transparent;border:1px solid var(--border)}
+    button:disabled{opacity:.6;cursor:not-allowed}
+
+    /* Panels */
+    .panel{background:linear-gradient(180deg,#111929,#0d1420);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+    .grid{display:grid;grid-template-columns:1fr;gap:18px}
+    @media(min-width:960px){.grid{grid-template-columns:2fr 1fr}}
+
+    /* Forms */
+    .row{display:flex;gap:10px}
+    .row>*{flex:1}
+    label{display:block;margin-bottom:6px;color:var(--muted);font-size:12px}
+    input[type="file"]{padding:8px;background:#0f1520}
+    .helper{color:var(--muted);font-size:12px;margin-top:6px}
+
+    /* Video cards */
+    .feed{display:grid;grid-template-columns:1fr;gap:16px}
+    @media(min-width:760px){.feed{grid-template-columns:1fr 1fr}}
+    .card{background:#0f1520;border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}
+    .card header{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border)}
+    .meta{font-size:12px;color:var(--muted)}
+    .card .body{padding:12px 14px}
+    .vid{width:100%;aspect-ratio:16/9;background:#05080c;border-radius:10px}
+    .toolbar{display:flex;gap:10px;margin-top:10px}
+    .stat{font-size:12px;color:var(--muted);margin-left:auto}
+
+    /* Comments */
+    .comments{margin-top:10px;border-top:1px solid var(--border);padding-top:10px}
+    .comment{padding:8px 10px;border:1px solid var(--border);border-radius:10px;margin-top:8px;background:#0a111a}
+
+    /* Auth */
+    .auth{display:flex;gap:10px;align-items:center}
+    .auth input, .auth select{padding:8px}
+    .tag{display:inline-block;padding:3px 8px;border-radius:20px;background:#0a111a;border:1px solid var(--border);font-size:12px;color:var(--muted)}
+
+    /* Toast */
+    .toast{position:fixed;inset:auto 20px 20px auto;background:#0f1520;border:1px solid var(--border);padding:10px 12px;border-radius:10px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:.2s}
+    .toast.show{opacity:1;transform:translateY(0)}
+
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="top">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <h1>Video Sharing Platform (Demo)</h1>
+      </div>
+      <div class="actions">
+        <input id="search" placeholder="Search videos or genres…" aria-label="Search" />
+        <span id="userBadge" class="tag">Guest</span>
+        <button id="btnLogin">Sign in</button>
+        <button id="btnLogout" class="secondary" hidden>Logout</button>
+      </div>
+    </header>
+
+    <section class="grid">
+      <!-- Left: Feed -->
+      <div class="panel">
+        <div class="row" style="align-items:end;margin-bottom:12px">
+          <div class="row" style="flex:3">
+            <div>
+              <label for="sort">Sort</label>
+              <select id="sort">
+                <option value="latest">Latest</option>
+                <option value="likes">Most liked</option>
+                <option value="views">Most viewed</option>
+              </select>
+            </div>
+            <div>
+              <label for="genreFilter">Genre</label>
+              <select id="genreFilter">
+                <option value="">All</option>
+                <option>Sports</option>
+                <option>Music</option>
+                <option>Education</option>
+                <option>Comedy</option>
+              </select>
+            </div>
+          </div>
+          <div style="text-align:right;flex:2">
+            <span class="muted">Creator can upload below →</span>
+          </div>
+        </div>
+        <div id="feed" class="feed" aria-live="polite"></div>
+      </div>
+
+      <!-- Right: Upload + Stats -->
+      <aside class="panel">
+        <h3 style="margin-top:0">Upload (Creator only)</h3>
+        <form id="uploadForm">
+          <div class="row">
+            <div>
+              <label>Role</label>
+              <select id="role">
+                <option value="consumer">Consumer</option>
+                <option value="creator">Creator</option>
+              </select>
+              <div class="helper">Choose <b>Creator</b> to enable uploads</div>
+            </div>
+            <div>
+              <label>Username</label>
+              <input id="username" placeholder="e.g., umair" required />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Password</label>
+              <input id="password" type="password" placeholder="••••••" required />
+            </div>
+            <div>
+              <label>Age Rating</label>
+              <select id="age">
+                <option>G</option><option>PG</option><option>PG-13</option><option>16</option><option>18</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Title</label>
+              <input id="title" placeholder="Video title" />
+            </div>
+            <div>
+              <label>Genre</label>
+              <input id="genre" placeholder="e.g., Sports" />
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Publisher</label>
+              <input id="publisher" placeholder="Publisher name" />
+            </div>
+            <div>
+              <label>Producer</label>
+              <input id="producer" placeholder="Producer name" />
+            </div>
+          </div>
+          <div>
+            <label>Description</label>
+            <textarea id="desc" rows="3" placeholder="Short description..."></textarea>
+          </div>
+          <div>
+            <label>Video file</label>
+            <input id="file" type="file" accept="video/*" />
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button type="button" id="btnSignup" class="ghost">Sign up</button>
+            <button type="button" id="btnLogin2" class="secondary">Sign in</button>
+            <button type="submit" id="btnUpload">Upload</button>
+          </div>
+        </form>
+
+        <hr style="border-color:var(--border);margin:18px 0">
+        <h3 style="margin:0 0 8px">Engagement</h3>
+        <canvas id="chart" height="160"></canvas>
+      </aside>
+    </section>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // ---- Simple Local Store (frontend-only demo) ----
+    const Store = {
+      _k: 'vshare_demo_v1',
+      get(){ try{return JSON.parse(localStorage.getItem(this._k))||{users:[], videos:[], session:null};}catch{ return {users:[], videos:[], session:null}; } },
+      set(v){ localStorage.setItem(this._k, JSON.stringify(v)); }
+    };
+
+    // Seed with one example video (YouTube embed) if empty
+    (function seed(){
+      const s=Store.get(); if(s.videos.length) return;
+      s.videos.push({id:crypto.randomUUID(), type:'youtube', ytId:'YEyWIyPfQWA',
+        title:'Cricket Highlights - India vs Australia',
+        description:'Sample cricket match highlight.', publisher:'SportsTV', producer:'SportsTV', genre:'Sports', age:'PG',
+        createdAt:Date.now()-86400000,
+        stats:{views:120, likes:80, shares:45},
+        comments:[{user:'guest', text:'Great match!'}], ratings:[5,4,5]});
+      Store.set(s);
+    })();
+
+    // ---- UI helpers ----
+    const $ = sel => document.querySelector(sel);
+    const toast = (msg)=>{ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'), 1900); }
+
+    // Auth state
+    function sessionUser(){ return Store.get().session; }
+    function setSession(u){ const s=Store.get(); s.session=u; Store.set(s); renderAuth(); }
+
+    // Sign up, Sign in, Logout
+    function signup(){
+      const username=$('#username').value.trim(); const password=$('#password').value.trim(); const role=$('#role').value;
+      if(!username||!password){ toast('Enter username and password'); return; }
+      const s=Store.get(); if(s.users.some(u=>u.username===username)){ toast('User exists. Try sign in.'); return; }
+      s.users.push({username,password,role}); s.session={username,role}; Store.set(s); toast('Signed up & logged in'); renderAuth(); }
+
+    function signin(){
+      const username=$('#username').value.trim(); const password=$('#password').value.trim();
+      const s=Store.get(); const u=s.users.find(u=>u.username===username && u.password===password);
+      if(!u){ toast('Invalid credentials'); return; }
+      s.session={username:u.username, role:u.role}; Store.set(s); toast('Signed in'); renderAuth(); }
+
+    function logout(){ setSession(null); toast('Logged out'); }
+
+    // Upload (creator only)
+    function onUpload(e){ e.preventDefault();
+      const sess=sessionUser(); if(!sess || sess.role!=='creator'){ toast('Creator role required to upload'); return; }
+      const f=$('#file').files[0]; const title=$('#title').value.trim()||'Untitled';
+      const description=$('#desc').value.trim(); const genre=$('#genre').value.trim();
+      const publisher=$('#publisher').value.trim(); const producer=$('#producer').value.trim();
+      const age=$('#age').value;
+      if(!f){ toast('Choose a video file'); return; }
+      const url=URL.createObjectURL(f);
+      const s=Store.get();
+      s.videos.unshift({id:crypto.randomUUID(), type:'file', src:url, title, description, genre, publisher, producer, age,
+        createdAt:Date.now(), stats:{views:0,likes:0,shares:0}, comments:[], ratings:[]});
+      Store.set(s); toast('Uploaded (local preview)');
+      // Reset fields (keep user/role)
+      $('#title').value=''; $('#desc').value=''; $('#genre').value=''; $('#publisher').value=''; $('#producer').value=''; $('#file').value='';
+      renderFeed(); renderChart();
+    }
+
+    // Feed rendering
+    function renderFeed(){
+      const q=$('#search').value.toLowerCase();
+      const sortBy=$('#sort').value; const g=$('#genreFilter').value.toLowerCase();
+      const s=Store.get();
+      let vids=[...s.videos];
+      if(q) vids=vids.filter(v=> (v.title||'').toLowerCase().includes(q) || (v.genre||'').toLowerCase().includes(q));
+      if(g) vids=vids.filter(v=> (v.genre||'').toLowerCase()===g);
+      vids.sort((a,b)=> sortBy==='latest'? b.createdAt-a.createdAt : sortBy==='likes'? (b.stats.likes-a.stats.likes) : (b.stats.views-a.stats.views));
+
+      const feed=$('#feed'); feed.innerHTML='';
+      vids.forEach(v=>{
+        const avg=v.ratings?.length? (v.ratings.reduce((x,y)=>x+y,0)/v.ratings.length).toFixed(1) : '—';
+        const el=document.createElement('article'); el.className='card'; el.dataset.id=v.id;
+        el.innerHTML=`
+          <header>
+            <div>
+              <div style="font-weight:600">${escapeHtml(v.title||'Untitled')}</div>
+              <div class="meta">${escapeHtml(v.publisher||'—')} · ${escapeHtml(v.producer||'—')} · <span class="tag">${escapeHtml(v.genre||'—')}</span> · <span class="tag">${escapeHtml(v.age||'PG')}</span></div>
+            </div>
+            <div class="meta">Rating: ${avg} ⭐</div>
+          </header>
+          <div class="body">
+            ${renderMedia(v)}
+            <p class="muted">${escapeHtml(v.description||'')}</p>
+            <div class="toolbar">
+              <button class="btn-like">Like (${v.stats.likes})</button>
+              <button class="btn-share">Share</button>
+              <button class="btn-rate secondary">Rate ⭐</button>
+              <span class="stat">Views ${v.stats.views} · Shares ${v.stats.shares} · Comments ${v.comments.length}</span>
+            </div>
+            <div class="comments">
+              <div class="row">
+                <input class="cmt" placeholder="Write a comment…" aria-label="Comment" />
+                <button class="btn-comment">Post</button>
+              </div>
+              ${v.comments.map(c=>`<div class="comment"><b>${escapeHtml(c.user)}</b>: ${escapeHtml(c.text)}</div>`).join('')}
+            </div>
+          </div>`;
+        feed.appendChild(el);
+      });
+    }
+
+    function renderMedia(v){
+      if(v.type==='youtube'){
+        const id=v.ytId; return `<div class="vid"><iframe title="YouTube video" width="100%" height="100%" src="https://www.youtube.com/embed/${id}" allowfullscreen loading="lazy" style="border:0;border-radius:10px"></iframe></div>`;
+      }
+      return `<video class="vid" controls src="${v.src}" preload="metadata"></video>`;
+    }
+
+    function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+
+    // Event delegation for interactions
+    $('#feed').addEventListener('click', (e)=>{
+      const card=e.target.closest('.card'); if(!card) return; const id=card.dataset.id; const s=Store.get(); const v=s.videos.find(x=>x.id===id);
+      if(e.target.classList.contains('btn-like')){ v.stats.likes++; Store.set(s); renderFeed(); renderChart(); toast('Liked'); }
+      if(e.target.classList.contains('btn-share')){ v.stats.shares++; Store.set(s); renderFeed(); renderChart(); if(navigator.share){ navigator.share({title:v.title}); } else { toast('Link copied (demo)'); } }
+      if(e.target.classList.contains('btn-rate')){ const val=+prompt('Rate 1–5'); if(val>=1&&val<=5){ v.ratings.push(val); Store.set(s); renderFeed(); renderChart(); } }
+      if(e.target.classList.contains('btn-comment')){ const input=card.querySelector('.cmt'); const txt=input.value.trim(); if(txt){ const u=sessionUser()?.username||'guest'; v.comments.push({user:u,text:txt}); input.value=''; Store.set(s); renderFeed(); renderChart(); } }
+    });
+
+    // Filters
+    ['search','sort','genreFilter'].forEach(id=> $("#"+id).addEventListener('input', renderFeed));
+
+    // Auth buttons
+    $('#btnSignup').addEventListener('click', signup);
+    $('#btnLogin2').addEventListener('click', signin);
+    $('#btnLogin').addEventListener('click', ()=>{ document.getElementById('username').focus(); toast('Enter credentials on the right'); });
+    $('#btnLogout').addEventListener('click', logout);
+
+    // Upload form
+    $('#uploadForm').addEventListener('submit', onUpload);
+
+    function renderAuth(){
+      const u=sessionUser();
+      $('#userBadge').textContent = u? `${u.username} · ${u.role}` : 'Guest';
+      $('#btnLogin').hidden = !!u; $('#btnLogout').hidden = !u;
+      const creator = !!u && u.role==='creator';
+      ['title','genre','desc','publisher','producer','file','btnUpload'].forEach(id=> $("#"+id).disabled = !creator);
+    }
+
+    // Chart
+    let chart;
+    function renderChart(){
+      const s=Store.get();
+      const totals=s.videos.reduce((acc,v)=>{
+        acc.views+=v.stats.views; acc.likes+=v.stats.likes; acc.shares+=v.stats.shares; acc.comments+=v.comments.length; return acc;
+      }, {views:0,likes:0,shares:0,comments:0});
+      const ctx=$('#chart');
+      const data={labels:['Views','Likes','Shares','Comments'], datasets:[{label:'Totals', data:[totals.views, totals.likes, totals.shares, totals.comments]}]};
+      if(chart){ chart.data=data; chart.update(); }
+      else { chart=new Chart(ctx,{type:'bar', data, options:{plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}}}}); }
+    }
+
+    // Initial render
+    renderAuth(); renderFeed(); renderChart();
+  </script>
+</body>
+</html>
